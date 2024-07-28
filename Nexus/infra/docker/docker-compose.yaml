@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: ../../backend/auth
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/nexus
+    depends_on:
+      - mongo
+
+  main-service:
+    build:
+      context: ../../backend/main_service
+      dockerfile: Dockerfile
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    volumes:
+      - ../../backend/main_service:/usr/src/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: nexus_mysql_db
+    ports:
+      - "3307:3306" # Burada 3306 yerine 3307 kullanıldı
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+
+volumes:
+  mysql-data:
